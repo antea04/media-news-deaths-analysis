@@ -1,0 +1,12 @@
+[project]
+name = "media-news-deaths-analysis"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "dotenv>=0.9.9",
+    "matplotlib>=3.10.7",
+    "mediacloud>=4.5.0",
+    "pandas>=2.3.3",
+]
