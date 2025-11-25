@@ -163,7 +163,7 @@ def _aggregate_causes(df: pd.DataFrame) -> pd.DataFrame:
                 "Insuficiència cardíaca",
             ]
         },
-        "homicide": {
+        "homicides": {
             "causes": ["Homicidis"],
         },
     }
