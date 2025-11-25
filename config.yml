@@ -1,0 +1,201 @@
+config:
+  header:
+    "User-Agent": "Mozilla/5.0"
+  api_sleep: 10
+  year: 2023
+  verbose: true
+  language: "ca"
+  # Whether you want to rerun the queries or not - rerunning the queries can take ~30 minutes.
+  # If false, the script uses the results found in ./data/media_deaths_mentions.csv
+  rerun_queries: true
+  # Whether you want to run single keyword queries (only 1 mention per article) vs multiple keyword queries (multiple mentions per article)
+  run_single_queries: false
+  # Whether you want to overwrite existing files or not
+  overwrite: true
+  # Whether to use final results for all plots. If TRUE this overrides all analysis
+  # and uses the saved results in ./data/media_deaths_results.csv
+  use_saved_results: false
+outlets:
+  - full_name: El Periodico
+    id: 330103
+    short_name: periodico
+  - full_name: Ara
+    id: 316401
+    short_name: ara
+  - full_name: Vilaweb
+    id: 179301
+    short_name: vilaweb
+  # - full_name: Notícies - 324
+  #   id: 381122
+  #   short_name: noticies324
+collections:
+  - full_name: Catalunya, Spain - State & Local
+    id: 38002059
+    short_name: cat
+causes_death:
+  # query: Each query should be a dictionary with the following format:
+  #   single_terms: [list of single terms]
+  #   combinations: [list of combinations of terms]
+  #   exclude_terms: [list of terms to exclude]
+  heart disease:
+    color: "#1f77b4"
+    query:
+      single_terms:
+        - malaltia del cor # heart disease
+        - atac de cor # heart attack
+        - aturada cardíaca # cardiac arrest
+        - infart # infarct
+        - malaltia de les artèries coronàries # coronary artery disease
+        - arítmia # arrhythmia
+        - insuficiència cardíaca # heart failure
+        - pericarditis # pericarditis
+        - endocarditis # endocarditis
+        - cardiomiopatia # cardiomyopathy
+        - pressió arterial alta # high blood pressure
+        - hipertensió # hypertension
+        - infecció del cor # heart infection
+        - cardiologia # cardiology
+        - cardiòleg # cardiologist
+      combinations:
+        - malaltia del cor cor # heart disease heart
+        - atac de cor cor # heart attack heart
+        - cor cardíac # heart cardiac
+        - cardíac cardíac # cardiac cardiac
+        - cor infart artèria # heart infarct artery
+        - cor artèria coronària # heart coronary artery
+        - cardíac artèria coronària # cardiac coronary artery
+        - cor arítmia # heart arrhythmia
+        - arítmia cardíaca # arrhythmia cardiac
+        - insuficiència cardíaca cor # heart failure heart
+        - insuficiència cardíaca cardíac # heart failure cardiac
+        - cor pericarditis # heart pericarditis
+        - cor endocarditis # heart endocarditis
+        - cor cardiomiopatia # heart cardiomyopathy
+        - cor hipotensió # heart hypotension
+        - cardíac hipertensió # cardiac hypertension
+        - infecció del cor cor # heart infection heart
+        - cor cardiologia # heart cardiology
+        - cor cardiòleg # heart cardiologist
+        - malaltia del cor pressió arterial # heart disease blood pressure
+        - atac de cor pressió arterial # heart attack blood pressure
+      exclude_terms: []
+  cancer:
+    color: "#ff7f0e"
+    query:
+      single_terms:
+        - càncer
+        - tumor
+        - carcinoma
+        - sarcoma
+        - leucèmia
+        - limfoma
+        - melanoma
+        - oncologia
+        - oncòleg
+        - quimioteràpia
+        - radioteràpia
+        - immunoteràpia
+        - teràpia dirigida
+        - biòpsia
+        - oncogen
+        - carcinogènesi
+        - metàstasi
+        - remissió
+        - carcinogen
+        - carcinogènic
+      combinations:
+        - càncer càncer
+        - càncer tumor
+        - càncer carcinoma
+        - càncer sarcoma
+        - càncer leucèmia
+        - càncer limfoma
+        - càncer melanoma
+        - càncer oncologia
+        - càncer quimioteràpia
+        - càncer radioteràpia
+        - càncer immunoteràpia
+        - càncer teràpia dirigida
+        - càncer biòpsia
+        - càncer remissió
+        - càncer carcinogen
+      exclude_terms: []
+  homicides:
+    color: "#00ff26"
+    query:
+      single_terms:
+        - homicidi # homicide
+        - agressió # assault
+        - tiroteig # shooting
+        - assassinat # murder
+        - homicidi imprudent # manslaughter
+        - delicte violent # violent crime
+        - violència domèstica # domestic violence
+        - violència de bandes # gang violence
+        - atac amb ganivet # knife attack
+        - apunyalament # stabbing
+        - linxament # lynching
+        - execució # execution
+        - assassí # killer
+        - assassinat # killing
+      combinations:
+        # all terms combined with homicide
+        - homicidi homicidi
+        - homicidi agressió
+        - homicidi tiroteig
+        - homicidi assassinat
+        - homicidi homicidi imprudent
+        - homicidi delicte
+        - homicidi violent
+        - homicidi violència
+        - homicidi atac amb ganivet
+        - homicidi apunyalament
+        - homicidi matar
+        # all terms combined with assault
+        - agressió agressió
+        - agressió tiroteig
+        - agressió assassinat
+        - agressió homicidi imprudent
+        - agressió delicte
+        - agressió violent
+        - agressió violència
+        - agressió atac amb ganivet
+        - agressió apunyalament
+        - agressió linxament
+        - agressió execució
+        - agressió matar
+        # all terms combined with shooting
+        - tiroteig tiroteig
+        - tiroteig assassinat
+        - tiroteig homicidi imprudent
+        - tiroteig delicte
+        - tiroteig violència
+        - tiroteig violent
+        - tiroteig atac amb ganivet
+        - tiroteig apunyalament
+        - tiroteig matar
+        # all terms combined with murder
+        - assassinat assassinat
+        - assassinat homicidi imprudent
+        - assassinat delicte
+        - assassinat violència
+        - assassinat violent
+        - assassinat atac amb ganivet
+        - assassinat apunyalament
+        - assassinat linxament
+        - assassinat execució
+        - assassinat matar
+        - delicte delicte
+        - delicte violència
+        - delicte violent
+        - delicte atac amb ganivet
+        - delicte apunyalament
+        - delicte matar
+        - violència atac amb ganivet
+        - violència apunyalament
+        - violència matar
+        - apunyalament apunyalament
+        - apunyalament atac amb ganivet
+        - matar assassí
+        - matar assassinat
+      exclude_terms: []
