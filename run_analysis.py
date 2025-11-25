@@ -12,15 +12,18 @@ Usage:
 """
 
 import argparse
+import importlib
 import os
 import sys
 import time
+import traceback
 from pathlib import Path
 
 import pandas as pd
 import mediacloud.api
 from dotenv import load_dotenv
 
+import media_deaths_analysis
 from media_deaths_analysis import (
     format_death_data,
     analyze_data,
@@ -28,6 +31,7 @@ from media_deaths_analysis import (
     query_results,
 )
 from query_generation import create_queries_by_cause
+from load_who_data import load_who_deaths
 
 
 # ============================================================================
@@ -42,22 +46,26 @@ DEFAULT_API_SLEEP = 10  # seconds between API calls
 # ============================================================================
 
 def load_config(country_code):
-    """Load configuration for specified country."""
-    from configs import usa, brazil
+    """Load configuration for specified country using ISO code."""
+    country_code_lower = country_code.lower()
 
-    configs = {
-        "usa": usa.CONFIG,
-        "brazil": brazil.CONFIG,
-    }
+    # Try to import the config module dynamically
+    try:
+        config_module = importlib.import_module(f"configs.{country_code_lower}")
+        return config_module.CONFIG
+    except (ImportError, AttributeError) as e:
+        # List available configs
+        configs_dir = Path("configs")
+        available_configs = sorted([
+            f.stem for f in configs_dir.glob("*.py")
+            if f.stem not in ("__init__", "TEMPLATE")
+        ])
 
-    if country_code.lower() not in configs:
-        available = ", ".join(configs.keys())
         raise ValueError(
-            f"Unknown country '{country_code}'. Available: {available}\n"
-            f"To add a new country, create configs/{country_code}.py"
-        )
-
-    return configs[country_code.lower()]
+            f"Config not found for country code '{country_code}'.\n"
+            f"Available: {', '.join(available_configs)}\n"
+            f"To add: create configs/{country_code_lower}.py with CONFIG dict"
+        ) from e
 
 
 def load_queries(config):
@@ -97,15 +105,12 @@ def load_death_data(config, cache_file):
         )
 
         # Set required global variables for legacy function
-        import media_deaths_analysis as mda
-        mda.YEAR = year
-        mda.TERRORISM_DEATHS_2023 = config["terrorism_deaths"]
+        media_deaths_analysis.YEAR = year
+        media_deaths_analysis.TERRORISM_DEATHS_2023 = config["terrorism_deaths"]
 
         death_df = format_death_data(leading_causes_df, external_causes_df)
 
     elif config["death_data_source"] == "who":
-        from load_who_data import load_who_deaths
-
         death_df = load_who_deaths(
             country_code=config["country_code"],
             year=year,
@@ -337,10 +342,9 @@ def run_analysis(config, rerun_queries=False, run_single_queries=False,
         print("Analyzing data...")
 
         # Set required global variables for legacy function
-        import media_deaths_analysis as mda
-        mda.CAUSES_OF_DEATH = config["causes_of_death"]
-        mda.OUTLETS = config["outlets"]
-        mda.COLLECTIONS = config["collections"]
+        media_deaths_analysis.CAUSES_OF_DEATH = config["causes_of_death"]
+        media_deaths_analysis.OUTLETS = config["outlets"]
+        media_deaths_analysis.COLLECTIONS = config["collections"]
 
         media_deaths_df = analyze_data(mentions_df, death_df, run_single_queries)
 
@@ -383,10 +387,9 @@ def run_analysis(config, rerun_queries=False, run_single_queries=False,
         plot_labels.append(collection['full_name'])
 
     # Set required global variables for legacy function
-    import media_deaths_analysis as mda
-    mda.YEAR = year
-    mda.CAUSES_OF_DEATH = config["causes_of_death"]
-    mda.FIXED_COLOURS = config["colors"]
+    media_deaths_analysis.YEAR = year
+    media_deaths_analysis.CAUSES_OF_DEATH = config["causes_of_death"]
+    media_deaths_analysis.FIXED_COLOURS = config["colors"]
 
     plot_media_deaths_matplotlib(
         media_deaths_df,
@@ -458,7 +461,6 @@ Adding new countries:
         )
     except Exception as e:
         print(f"\nError: {e}", file=sys.stderr)
-        import traceback
         traceback.print_exc()
         sys.exit(1)
 

@@ -26,29 +26,35 @@ CONFIG = {
     # Media Cloud collections (if available)
     "collections": [],
 
-    # Causes of death to analyze (standardized names - same as USA)
+    # Causes of death to analyze (standardized names)
+    # Note: WHO has broad categories, so some causes are not available:
+    # - stroke: included in "Cardiovascular diseases"
+    # - alzheimers: included in "Neuropsychiatric conditions"
+    # - covid: included in "Respiratory infections" (not separate in 2020 WHO data)
+    # - drug overdose: not separately categorized
+    # - homicide: included in "Intentional injuries"
     "causes_of_death": [
         "heart disease",
         "cancer",
         "accidents",
-        "stroke",
+        # "stroke",  # Not separate in WHO
         "respiratory",
-        "alzheimers",
+        # "alzheimers",  # Not separate in WHO
         "diabetes",
         "kidney",
         "liver",
-        "covid",
+        # "covid",  # Not separate in WHO 2020 data (included in respiratory infections)
         "suicide",
         "influenza",
-        "drug overdose",
-        "homicide",
+        # "drug overdose",  # Not in WHO
+        # "homicide",  # Not separate in WHO (part of intentional injuries)
         "terrorism",
     ],
 
     # WHO data doesn't need mapping (handled by load_who_data.py)
     "causes_map": {},
 
-    # Colors for visualization (same as USA)
+    # Colors for visualization
     "colors": {
         "heart disease": "#1f77b4",
         "cancer": "#ff7f0e",
