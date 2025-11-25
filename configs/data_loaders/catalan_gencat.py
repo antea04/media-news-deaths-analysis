@@ -8,7 +8,7 @@ standard categories (cancer, heart disease, homicide, etc.).
 """
 
 import pandas as pd
-from . import register_loader
+from media_deaths.data_loaders import register_loader
 
 
 @register_loader("catalan_gencat")
