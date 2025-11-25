@@ -6,6 +6,7 @@ from pathlib import Path
 
 from media_deaths.config import Config
 from media_deaths.main import main
+from media_deaths.log import Log
 from media_deaths.language_index import (
     resolve_language_code,
     format_available_languages,
@@ -107,20 +108,20 @@ def cli():
         # Use custom config file
         config_path = Path(args.custom_config)
         if not config_path.exists():
-            print(f"Error: Configuration file not found: {args.custom_config}")
+            Log.error(f"Configuration file not found: {args.custom_config}")
             return 1
     elif args.language_code:
         # Resolve language code to config file
         try:
             config_path = resolve_language_code(args.language_code)
         except (ValueError, FileNotFoundError) as e:
-            print(f"Error: {e}")
+            Log.error(str(e))
             print()
             print(format_available_languages())
             return 1
     else:
         # Neither provided - show error and available languages
-        print("Error: Please provide either a language-region code or --custom-config")
+        Log.error("Please provide either a language-region code or --custom-config")
         print()
         print(format_available_languages())
         print()
@@ -145,7 +146,7 @@ def cli():
 
     # Handle verbose flags (--verbose vs --quiet)
     if args.verbose and args.quiet:
-        print("Error: Cannot use both --verbose and --quiet")
+        Log.error("Cannot use both --verbose and --quiet")
         return 1
     if args.verbose:
         config.VERBOSE = True
