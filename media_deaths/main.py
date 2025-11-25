@@ -32,12 +32,13 @@ discover_loaders()
 # ============================================================================
 
 
-def main(config: Config, causes_of_death: list[str] | None = None):
+def main(config: Config, causes_of_death: list[str] | None = None, dry_run: bool = False):
     """Main execution function.
 
     Args:
         config: Configuration object loaded from YAML file
         causes_of_death: Optional list of specific causes to analyze. If None, uses all from config.
+        dry_run: If True, show what would be executed without running queries
     """
     # Validate causes of death
     if causes_of_death is None:
@@ -59,16 +60,64 @@ def main(config: Config, causes_of_death: list[str] | None = None):
     else:
         time_estimate = "<1 min (cached)"
 
-    Log.summary(
-        "MEDIA DEATHS ANALYSIS",
-        year=config.YEAR,
-        language=config.LANGUAGE,
-        outlets=", ".join([outlet["full_name"] for outlet in outlets]),
-        rerun_queries=config.RERUN_QUERIES,
-        run_single_keyword_queries=config.RUN_SINGLE_QUERIES,
-        use_saved_results=config.USE_SAVED_RESULTS,
-        estimated_time=time_estimate,
-    )
+    # Prepare summary info
+    summary_info = {
+        "year": config.YEAR,
+        "language": config.LANGUAGE,
+        "outlets": ", ".join([outlet["full_name"] for outlet in outlets]),
+        "rerun_queries": config.RERUN_QUERIES,
+        "run_single_keyword_queries": config.RUN_SINGLE_QUERIES,
+        "use_saved_results": config.USE_SAVED_RESULTS,
+        "estimated_time": time_estimate,
+    }
+
+    if dry_run:
+        summary_info["mode"] = "DRY RUN"
+
+    Log.summary("MEDIA DEATHS ANALYSIS", **summary_info)
+
+    # Handle dry run mode
+    if dry_run:
+        Log.info("Dry run mode - showing execution plan without running queries")
+        print()
+
+        # Show causes to analyze
+        Log.section("Causes of Death")
+        for i, cause in enumerate(CAUSES_OF_DEATH, 1):
+            print(f"  {i}. {cause}")
+        print()
+
+        # Show sources to query
+        Log.section("Media Sources")
+        print(f"  Outlets ({len(outlets)}):")
+        for outlet in outlets:
+            print(f"    - {outlet['full_name']} (id: {outlet['id']})")
+        print()
+        print(f"  Collections ({len(config.COLLECTIONS)}):")
+        for collection in config.COLLECTIONS:
+            print(f"    - {collection['full_name']} (id: {collection['id']})")
+        print()
+
+        # Show query plan
+        Log.section("Query Execution Plan")
+        num_causes = len(CAUSES_OF_DEATH)
+        num_sources = len(outlets) + len(config.COLLECTIONS)
+        num_queries = num_causes * num_sources
+        print(f"  Total queries: {num_queries}")
+        print(f"  Formula: {num_causes} causes × {num_sources} sources")
+        print(f"  Estimated time: ~{int(num_queries * 0.5)} minutes")
+        print()
+
+        # Show output files
+        Log.section("Output Files")
+        print(f"  Directory: {config.OUTPUT_DIR}")
+        print(f"  - media_deaths_mentions_{config.LANGUAGE}.csv")
+        print(f"  - media_deaths_results_{config.LANGUAGE}.csv")
+        print(f"  - media_deaths_plot_{config.LANGUAGE}.png")
+        print()
+
+        Log.success("Dry run completed. Run without --dry-run to execute analysis.")
+        return
 
     # Load or use saved results
     if config.USE_SAVED_RESULTS:

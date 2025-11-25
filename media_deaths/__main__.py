@@ -50,6 +50,11 @@ def cli():
         default="./data",
         help="Directory for output files (default: ./data)",
     )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Show what would be executed without running queries",
+    )
 
     args = parser.parse_args()
 
@@ -95,8 +100,8 @@ def cli():
     output_dir = Path(args.output_dir)
     config.OUTPUT_DIR = output_dir
 
-    # Run analysis
-    main(config, causes_of_death=args.causes)
+    # Run analysis (or dry run)
+    main(config, causes_of_death=args.causes, dry_run=args.dry_run)
 
     return 0
 

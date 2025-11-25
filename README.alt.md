@@ -96,7 +96,7 @@ uv run media-deaths ca_ES --output-dir ./results
 - `media_deaths_results_{language}.csv` - Analysis results
 - `media_deaths_plot_{language}.png` - Visualization
 
-**Performance**: ~30 min first run, <1 min cached (set `rerun_queries: false`)
+**Performance**: Time varies by config (~0.5 min per query). Example: 3 causes × 4 sources = 12 queries = ~6 min. Cached runs: <1 min (set `rerun_queries: false`)
 
 ---
 
@@ -177,7 +177,7 @@ uv run media-deaths your_CODE
 
 **Config Reference**: See full examples in [`configs/cat.yml`](configs/cat.yml)
 
-**Performance**: Set `rerun_queries: false` in config to use cached data (<1 min vs ~30 min)
+**Performance**: Set `rerun_queries: false` to use cached data. Time estimate shown at start (formula: ~0.5 min × causes × sources)
 
 ---
 
