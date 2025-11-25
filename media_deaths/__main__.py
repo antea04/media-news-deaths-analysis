@@ -56,6 +56,42 @@ def cli():
         action="store_true",
         help="Show what would be executed without running queries",
     )
+    parser.add_argument(
+        "--cache",
+        action="store_true",
+        help="Use cached query results instead of rerunning queries (faster)",
+    )
+    parser.add_argument(
+        "--single-queries",
+        action="store_true",
+        help="Run single keyword queries (only 1 mention per article)",
+    )
+    parser.add_argument(
+        "--no-overwrite",
+        action="store_true",
+        help="Do not overwrite existing output files",
+    )
+    parser.add_argument(
+        "--use-saved-results",
+        action="store_true",
+        help="Use saved results file instead of running analysis",
+    )
+    parser.add_argument(
+        "--api-sleep",
+        type=float,
+        default=10,
+        help="Sleep time between API calls in seconds (default: 10)",
+    )
+    parser.add_argument(
+        "--verbose",
+        action="store_true",
+        help="Enable verbose output",
+    )
+    parser.add_argument(
+        "--quiet",
+        action="store_true",
+        help="Disable verbose output",
+    )
 
     args = parser.parse_args()
 
@@ -100,6 +136,35 @@ def cli():
     # Set output directory
     output_dir = Path(args.output_dir)
     config.OUTPUT_DIR = output_dir
+
+    # Override runtime settings with command-line arguments
+    # Handle cache flag
+    if args.cache:
+        config.RERUN_QUERIES = False
+    # else: use config file default (rerun queries)
+
+    # Handle verbose flags (--verbose vs --quiet)
+    if args.verbose and args.quiet:
+        print("Error: Cannot use both --verbose and --quiet")
+        return 1
+    if args.verbose:
+        config.VERBOSE = True
+    elif args.quiet:
+        config.VERBOSE = False
+    # else: use config file default
+
+    # Override other runtime settings
+    if args.single_queries:
+        config.RUN_SINGLE_QUERIES = True
+
+    if args.no_overwrite:
+        config.OVERWRITE = False
+
+    if args.use_saved_results:
+        config.USE_SAVED_RESULTS = True
+
+    # Always override api_sleep if provided (even if default)
+    config.API_SLEEP = args.api_sleep
 
     # Run analysis (or dry run)
     main(config, causes_of_death=args.causes, dry_run=args.dry_run)

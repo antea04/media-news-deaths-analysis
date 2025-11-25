@@ -5,22 +5,7 @@ metadata:
   name: "Catalan (Spain)"
   description: "Catalan media analysis using GenCat Salut data"
 
-# Details of the execution, not language-dependent
-runtime:
-  verbose: true
-  # Whether you want to rerun the queries or not.
-  # Time estimate: ~0.5 min per query × (num_causes × num_sources)
-  # If false, the script uses cached results from ./data/media_deaths_mentions.csv
-  rerun_queries: true
-  # Whether you want to run single keyword queries (only 1 mention per article) vs multiple keyword queries (multiple mentions per article)
-  run_single_queries: false
-  # Whether you want to overwrite existing files or not
-  overwrite: true
-  # Whether to use final results for all plots. If TRUE this overrides all analysis
-  # and uses the saved results in ./data/media_deaths_results.csv
-  use_saved_results: false
-  api_sleep: 10
-
+# Data configuration
 data:
   year: 2023
   # Data loader module to use for fetching mortality data. This should be a string, matching a registered data loader (see data_loaders/)
