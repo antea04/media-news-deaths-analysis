@@ -7,8 +7,8 @@ country-specific configurations.
 
 Usage:
     python run_analysis.py --country usa
-    python run_analysis.py --country usa --rerun-queries
-    python run_analysis.py --country brazil --year 2020
+    python run_analysis.py --country bra --restart
+    python run_analysis.py --country usa --year 2022
 """
 
 import argparse
@@ -278,7 +278,7 @@ def query_media_cloud(config, cache_file):
 # MAIN ANALYSIS
 # ============================================================================
 
-def run_analysis(config, rerun_queries=False, run_single_queries=False,
+def run_analysis(config, restart=False, run_single_queries=False,
                  use_saved_results=False, overwrite=True):
     """Run the full media deaths analysis for a given configuration."""
 
@@ -293,7 +293,7 @@ def run_analysis(config, rerun_queries=False, run_single_queries=False,
     print(f"Language: {language}")
     print(f"Year: {year}")
     print(f"Outlets: {[o['full_name'] for o in config['outlets']]}")
-    print(f"Rerun queries: {rerun_queries}")
+    print(f"Restart from scratch: {restart}")
     print(f"Use saved results: {use_saved_results}")
     print("=" * 80)
     print()
@@ -306,6 +306,12 @@ def run_analysis(config, rerun_queries=False, run_single_queries=False,
     mentions_file = output_dir / f"media_deaths_mentions_{language}.csv"
     results_file = output_dir / f"media_deaths_results_{language}.csv"
     plot_file = output_dir / "media_deaths_by_source.png"
+
+    # Handle restart flag - clear existing cache
+    if restart and mentions_file.exists():
+        print(f"🔄 Restart flag set - removing existing cache at {mentions_file}")
+        mentions_file.unlink()
+        print()
 
     # Load or compute results
     if use_saved_results:
@@ -323,14 +329,14 @@ def run_analysis(config, rerun_queries=False, run_single_queries=False,
         # Load or query media mentions
         cache_is_complete = check_cache_completeness(mentions_file, config)
 
-        if cache_is_complete and not rerun_queries:
+        if cache_is_complete:
             print(f"✓ Using complete cached data from {mentions_file}")
             mentions_df = pd.read_csv(mentions_file)
         else:
-            if mentions_file.exists() and not rerun_queries:
+            if mentions_file.exists():
                 print("📂 Resuming from incomplete cache...")
-            elif rerun_queries:
-                print("🔄 Re-running queries (--rerun-queries flag set)...")
+            else:
+                print("🔄 Starting fresh query run...")
             print("Querying Media Cloud API...")
             print("This may take ~30 minutes due to API rate limits...")
             print()
@@ -423,21 +429,21 @@ def main():
         epilog="""
 Examples:
   python run_analysis.py --country usa
-  python run_analysis.py --country usa --rerun-queries
+  python run_analysis.py --country bra --restart
   python run_analysis.py --country usa --use-saved-results
   python run_analysis.py --country usa --year 2022
 
 Adding new countries:
-  1. Create configs/[country].py with configuration
+  1. Create configs/[country_code].py with configuration (use ISO 3-letter code)
   2. Add translated query keywords to the config
-  3. Run: python run_analysis.py --country [country]
+  3. Run: python run_analysis.py --country [country_code]
         """
     )
 
-    parser.add_argument("--country", required=True, help="Country code (usa, brazil, etc.)")
+    parser.add_argument("--country", required=True, help="Country code (usa, bra, etc.)")
     parser.add_argument("--year", type=int, help="Year to analyze (overrides config default)")
-    parser.add_argument("--rerun-queries", action="store_true",
-                        help="Re-query Media Cloud API (~30 min)")
+    parser.add_argument("--restart", action="store_true",
+                        help="Start from scratch (clear cached mentions data)")
     parser.add_argument("--run-single-queries", action="store_true",
                         help="Run single-keyword queries")
     parser.add_argument("--use-saved-results", action="store_true",
@@ -454,7 +460,7 @@ Adding new countries:
 
         run_analysis(
             config=config,
-            rerun_queries=args.rerun_queries,
+            restart=args.restart,
             run_single_queries=args.run_single_queries,
             use_saved_results=args.use_saved_results,
             overwrite=not args.no_overwrite,
