@@ -77,7 +77,10 @@ class Config:
         Raises:
             ValueError: If the data loader is not registered
         """
-        from configs.data_loaders import list_loaders
+        from media_deaths.data_loaders import list_loaders, discover_loaders
+
+        # Ensure loaders are discovered before validation
+        discover_loaders()
 
         available_loaders = list_loaders()
         if self.DATA_LOADER not in available_loaders:
