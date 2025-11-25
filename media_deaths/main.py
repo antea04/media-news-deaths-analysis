@@ -48,6 +48,17 @@ def main(config: Config, causes_of_death: list[str] | None = None):
     CAUSES_OF_DEATH = causes_of_death
     outlets = config.OUTLETS
 
+    # Calculate estimated time if running queries
+    if config.RERUN_QUERIES and not config.USE_SAVED_RESULTS:
+        num_causes = len(CAUSES_OF_DEATH)
+        num_sources = len(outlets) + len(config.COLLECTIONS)
+        num_queries = num_causes * num_sources
+        # Each query takes ~0.5 minutes (30 seconds)
+        estimated_minutes = int(num_queries * 0.5)
+        time_estimate = f"~{estimated_minutes} min ({num_queries} queries)"
+    else:
+        time_estimate = "<1 min (cached)"
+
     Log.summary(
         "MEDIA DEATHS ANALYSIS",
         year=config.YEAR,
@@ -56,6 +67,7 @@ def main(config: Config, causes_of_death: list[str] | None = None):
         rerun_queries=config.RERUN_QUERIES,
         run_single_keyword_queries=config.RUN_SINGLE_QUERIES,
         use_saved_results=config.USE_SAVED_RESULTS,
+        estimated_time=time_estimate,
     )
 
     # Load or use saved results
