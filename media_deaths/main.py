@@ -119,7 +119,7 @@ def main(
         print(f"  Directory: {output_dir}")
         print(f"  - media_deaths_mentions.csv")
         print(f"  - media_deaths_results.csv")
-        print(f"  - media_deaths_plot.png")
+        print(f"  - media_deaths_by_source.png")
         print()
 
         Log.success("Dry run completed. Run without --dry-run to execute analysis.")
@@ -150,7 +150,6 @@ def main(
             verbose=config.VERBOSE,
             queries=config.QUERIES,
             collections=config.COLLECTIONS,
-            language_region=config.CODE,
             overwrite=config.OVERWRITE,
             run_single_queries=config.RUN_SINGLE_QUERIES,
             output_dir=output_dir,
@@ -169,10 +168,7 @@ def main(
 
         # Save results
         if config.OVERWRITE:
-            config.OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-            results_file = (
-                config.OUTPUT_DIR / f"media_deaths_results_{config.CODE}.csv"
-            )
+            results_file = output_dir / "media_deaths_results.csv"
             media_deaths_df.to_csv(results_file, index=False)
             Log.success(f"Saved analysis results to {results_file}")
         print()
@@ -196,7 +192,7 @@ def main(
 
     # 1. Media mentions by source
     Log.info("Generating media mentions by source plot...")
-    plot_save_path = config.OUTPUT_DIR / "media_deaths_by_source.png"
+    plot_save_path = output_dir / "media_deaths_by_source.png"
     plot_media_deaths_matplotlib(
         media_deaths_df=media_deaths_df,
         causes_of_death=CAUSES_OF_DEATH,
@@ -398,7 +394,6 @@ def get_media_mentions(
     year: int,
     api_sleep: float,
     verbose: bool,
-    language_region: str,
     overwrite: bool,
     run_single_queries: bool,
     output_dir,
@@ -520,12 +515,11 @@ def get_media_mentions(
             ]
 
         if overwrite:
-            output_dir.mkdir(parents=True, exist_ok=True)
-            mentions_file = output_dir / f"media_deaths_mentions_{language_region}.csv"
+            mentions_file = output_dir / "media_deaths_mentions.csv"
             mentions_df.to_csv(mentions_file, index=False)
             Log.success(f"Saved mentions data to {mentions_file}")
     else:
-        mentions_file = output_dir / f"media_deaths_mentions_{language_region}.csv"
+        mentions_file = output_dir / "media_deaths_mentions.csv"
         Log.info(f"Loading cached mentions data from {mentions_file}")
         mentions_df = pd.read_csv(mentions_file)
 

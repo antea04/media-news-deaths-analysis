@@ -94,10 +94,10 @@ uv run media-deaths --custom-config path/to/config.yml
 uv run media-deaths ca_ES --output-dir ./results
 ```
 
-**Output files** (saved to `./data/`):
-- `media_deaths_mentions_{language}.csv` - Raw API results
-- `media_deaths_results_{language}.csv` - Analysis results
-- `media_deaths_plot_{language}.png` - Visualization
+**Output files** (saved to `./data/{language_region}/`):
+- `media_deaths_mentions.csv` - Raw API results
+- `media_deaths_results.csv` - Analysis results
+- `media_deaths_by_source.png` - Visualization
 
 **Performance**: Time varies by config (~0.5 min per query). Example: 3 causes × 4 sources = 12 queries = ~6 min. Cached runs: <1 min (set `rerun_queries: false`)
 
