@@ -22,7 +22,10 @@ from media_deaths.query_generation import (
     create_full_queries,
     create_single_keyword_queries,
 )
-from configs.data_loaders import get_loader
+from media_deaths.data_loaders import get_loader, discover_loaders
+
+# Discover and register all available data loaders
+discover_loaders()
 
 # ============================================================================
 # MAIN EXECUTION
@@ -83,6 +86,7 @@ def main(config: Config, causes_of_death: list[str] | None = None):
             language=config.LANGUAGE,
             overwrite=config.OVERWRITE,
             run_single_queries=config.RUN_SINGLE_QUERIES,
+            output_dir=config.OUTPUT_DIR,
         )
         print()
 
@@ -99,7 +103,9 @@ def main(config: Config, causes_of_death: list[str] | None = None):
         # Save results
         if config.OVERWRITE:
             config.OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-            results_file = config.OUTPUT_DIR / f"media_deaths_results_{config.LANGUAGE}.csv"
+            results_file = (
+                config.OUTPUT_DIR / f"media_deaths_results_{config.LANGUAGE}.csv"
+            )
             media_deaths_df.to_csv(results_file, index=False)
             Log.success(f"Saved analysis results to {results_file}")
         print()
@@ -328,6 +334,7 @@ def get_media_mentions(
     language: str,
     overwrite: bool,
     run_single_queries: bool,
+    output_dir,
 ):
     """
     Get media mentions from Media Cloud or load cached data.
@@ -440,18 +447,14 @@ def get_media_mentions(
             ]
 
         if overwrite:
-            os.makedirs("./data", exist_ok=True)
-            mentions_df.to_csv(
-                f"./data/media_deaths_mentions_{language}.csv", index=False
-            )
-            Log.success(
-                f"Saved mentions data to ./data/media_deaths_mentions_{language}.csv"
-            )
+            output_dir.mkdir(parents=True, exist_ok=True)
+            mentions_file = output_dir / f"media_deaths_mentions_{language}.csv"
+            mentions_df.to_csv(mentions_file, index=False)
+            Log.success(f"Saved mentions data to {mentions_file}")
     else:
-        Log.info(
-            f"Loading cached mentions data from ./data/media_deaths_mentions_{language}.csv"
-        )
-        mentions_df = pd.read_csv(f"./data/media_deaths_mentions_{language}.csv")
+        mentions_file = output_dir / f"media_deaths_mentions_{language}.csv"
+        Log.info(f"Loading cached mentions data from {mentions_file}")
+        mentions_df = pd.read_csv(mentions_file)
 
     mentions_df = mentions_df.astype({"mentions": "Int64", "year": "Int64"})
     return mentions_df
