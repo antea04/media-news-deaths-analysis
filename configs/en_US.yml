@@ -1,5 +1,10 @@
 # Configuration for media deaths analysis
 #
+# Metadata
+metadata:
+  name: "English (United States)"
+  description: "US media analysis using CDC data"
+
 # Details of the execution, not language-dependent
 runtime:
   verbose: true

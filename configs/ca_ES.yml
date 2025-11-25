@@ -1,5 +1,10 @@
 # Configuration for media deaths analysis
 #
+# Metadata
+metadata:
+  name: "Catalan (Spain)"
+  description: "Catalan media analysis using GenCat Salut data"
+
 # Details of the execution, not language-dependent
 runtime:
   verbose: true

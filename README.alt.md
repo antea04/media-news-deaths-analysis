@@ -105,20 +105,23 @@ uv run media-deaths ca_ES --output-dir ./results
 
 ## HOWTO add a new language/region
 
-Taking the `ca_ES` example (Catalan in Spain), you need to follow the following **4 steps**:
+Taking the `ca_ES` example (Catalan in Spain), you need to follow the following **3 steps**:
 
 ### Step 1: Create Config File
 
-Create `configs/your_country.yml` following the structure in [`configs/cat.yml`](configs/cat.yml):
+Create `configs/your_CODE.yml` following the structure in [`configs/ca_ES.yml`](configs/ca_ES.yml):
+
+**Filename format**: `ll_CC.yml` (ISO-639 language + ISO-3166 country), e.g., `fr_FR.yml`, `en_US.yml`, `es_MX.yml`
 
 **Key sections**:
-- `runtime`: Analysis settings (see [`configs/cat.yml:4-18`](configs/cat.yml#L4-L18))
-- `data`: Year, language, data loader name
+- `metadata`: Human-readable name and description (appears in `--list-languages`)
+- `runtime`: Analysis settings (see [`configs/ca_ES.yml:9-21`](configs/ca_ES.yml#L9-L21))
+- `data`: Year and data loader name
 - `outlets`: Media outlets to query (find IDs at [search.mediacloud.org](https://search.mediacloud.org))
 - `collections`: Geographic collections
 - `causes_death`: Translated search terms for each cause
 
-See full example structure in [`configs/cat.yml`](configs/cat.yml).
+See full example structure in [`configs/ca_ES.yml`](configs/ca_ES.yml).
 
 ### Step 2: Create Data Loader
 
@@ -136,20 +139,7 @@ Create `configs/data_loaders/your_loader.py` following [`configs/data_loaders/ca
 3. `_clean_data()` - Format and clean
 4. `_aggregate_causes()` - Map to standard cause categories
 
-### Step 3: Register in Index
-
-Add entry to [`configs/index.yml`](configs/index.yml):
-
-```yaml
-your_CODE:
-  name: Your Language (Country)
-  config: your_country.yml
-  description: Brief description
-```
-
-Format: `ll_CC` (ISO-639 language + ISO-3166 country), e.g., `fr_FR`, `en_US`, `es_MX`
-
-### Step 4: Import Loader
+### Step 3: Import Loader
 
 Add import to [`configs/data_loaders/__init__.py`](configs/data_loaders/__init__.py):
 
