@@ -1,12 +1,26 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
 [project]
-name = "media-news-deaths-analysis"
+name = "media-deaths"
 version = "0.1.0"
-description = "Add your description here"
+description = "Analysis of media mentions of causes of death compared to actual mortality data"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.14"
 dependencies = [
     "dotenv>=0.9.9",
     "matplotlib>=3.10.7",
     "mediacloud>=4.5.0",
+    "openpyxl>=3.1.5",
     "pandas>=2.3.3",
+    "pyyaml>=6.0.3",
 ]
+
+[project.scripts]
+media-deaths = "media_deaths.__main__:cli"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["media_deaths*", "configs*"]
+exclude = ["data*"]
