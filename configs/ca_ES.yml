@@ -2,8 +2,6 @@
 #
 # Details of the execution, not language-dependent
 runtime:
-  header:
-    "User-Agent": "Mozilla/5.0"
   verbose: true
   # Whether you want to rerun the queries or not - rerunning the queries can take ~30 minutes.
   # If false, the script uses the results found in ./data/media_deaths_mentions.csv
