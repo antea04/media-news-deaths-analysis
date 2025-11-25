@@ -24,6 +24,12 @@ def cli():
         nargs="+",
         help="Specific causes of death to analyze (space-separated). If not provided, analyzes all causes from config.",
     )
+    parser.add_argument(
+        "--output-dir",
+        type=str,
+        default="./data",
+        help="Directory for output files (default: ./data)",
+    )
 
     args = parser.parse_args()
 
@@ -34,6 +40,10 @@ def cli():
         return 1
 
     config = Config(config_path)
+
+    # Set output directory
+    output_dir = Path(args.output_dir)
+    config.OUTPUT_DIR = output_dir
 
     # Run analysis
     main(config, causes_of_death=args.causes)

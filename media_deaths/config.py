@@ -39,20 +39,52 @@ class Config:
         # Media Cloud Token
         self.MC_API_TOKEN = os.getenv("MC_API_TOKEN")
 
-        # Set overall variables for analysis
-        self.YEAR = self._config["config"]["year"]
-        self.VERBOSE = self._config["config"]["verbose"]
-        self.LANGUAGE = self._config["config"]["language"]
-        self.RERUN_QUERIES = self._config["config"]["rerun_queries"]
-        self.RUN_SINGLE_QUERIES = self._config["config"]["run_single_queries"]
-        self.OVERWRITE = self._config["config"]["overwrite"]
-        self.USE_SAVED_RESULTS = self._config["config"]["use_saved_results"]
-        self.API_SLEEP = self._config["config"]["api_sleep"]
+        # Set data variables (language, year, data loader)
+        data_config = self._config.get("data", {})
+        self.YEAR = data_config.get("year")
+        if not self.YEAR:
+            raise ValueError("Missing required field 'data.year' in config")
+        self.LANGUAGE = data_config.get("language")
+        if not self.LANGUAGE:
+            raise ValueError("Missing required field 'data.language' in config")
+        self.DATA_LOADER = data_config.get("data_loader")
+        if not self.DATA_LOADER:
+            raise ValueError(
+                "Missing required field 'data.data_loader'. "
+                "Please specify which data loader to use (e.g., 'catalan_gencat')"
+            )
+
+        # Set runtime variables (with defaults)
+        runtime_config = self._config.get("runtime", {})
+        self.VERBOSE = runtime_config.get("verbose", True)
+        self.RERUN_QUERIES = runtime_config.get("rerun_queries", True)
+        self.RUN_SINGLE_QUERIES = runtime_config.get("run_single_queries", False)
+        self.OVERWRITE = runtime_config.get("overwrite", False)
+        self.USE_SAVED_RESULTS = runtime_config.get("use_saved_results", False)
+        self.API_SLEEP = runtime_config.get("api_sleep", 10)
+
+        # Validate that the loader exists
+        self._validate_data_loader()
 
         # Media outlets information
         self.OUTLETS = self._config["outlets"]
         # Media collections information
         self.COLLECTIONS = self._config["collections"]
+
+    def _validate_data_loader(self):
+        """Validate that the configured data loader exists.
+
+        Raises:
+            ValueError: If the data loader is not registered
+        """
+        from configs.data_loaders import list_loaders
+
+        available_loaders = list_loaders()
+        if self.DATA_LOADER not in available_loaders:
+            raise ValueError(
+                f"Unknown data loader: '{self.DATA_LOADER}'. "
+                f"Available loaders: {', '.join(available_loaders) if available_loaders else '(none)'}"
+            )
 
     def check_valid_causes(self, causes: list[str]) -> None:
         """Check if the provided causes are valid.

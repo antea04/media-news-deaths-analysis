@@ -1,10 +1,10 @@
-config:
+# Configuration for media deaths analysis
+#
+# Details of the execution, not language-dependent
+runtime:
   header:
     "User-Agent": "Mozilla/5.0"
-  api_sleep: 10
-  year: 2023
   verbose: true
-  language: "ca"
   # Whether you want to rerun the queries or not - rerunning the queries can take ~30 minutes.
   # If false, the script uses the results found in ./data/media_deaths_mentions.csv
   rerun_queries: true
@@ -15,6 +15,15 @@ config:
   # Whether to use final results for all plots. If TRUE this overrides all analysis
   # and uses the saved results in ./data/media_deaths_results.csv
   use_saved_results: false
+  api_sleep: 10
+
+data:
+  year: 2023
+  language: "ca"
+  # Data loader module to use for fetching mortality data. This should be a string, matching a registered data loader (see data_loaders/)
+  data_loader: "catalan_gencat"
+
+# Replace below with desired outlets and collections
 outlets:
   - full_name: El Periodico
     id: 330103
@@ -25,13 +34,14 @@ outlets:
   - full_name: Vilaweb
     id: 179301
     short_name: vilaweb
-  # - full_name: Notícies - 324
-  #   id: 381122
-  #   short_name: noticies324
+
+# Replace below with desired collections
 collections:
   - full_name: Catalunya, Spain - State & Local
     id: 38002059
     short_name: cat
+
+# Replace below with desired causes of death and associated queries
 causes_death:
   # query: Each query should be a dictionary with the following format:
   #   single_terms: [list of single terms]

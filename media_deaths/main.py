@@ -22,6 +22,7 @@ from media_deaths.query_generation import (
     create_full_queries,
     create_single_keyword_queries,
 )
+from configs.data_loaders import get_loader
 
 # ============================================================================
 # MAIN EXECUTION
@@ -56,15 +57,16 @@ def main(config: Config, causes_of_death: list[str] | None = None):
 
     # Load or use saved results
     if config.USE_SAVED_RESULTS:
-        Log.info(
-            f"Loading saved results from ./data/media_deaths_results_{config.LANGUAGE}.csv"
-        )
-        media_deaths_df = pd.read_csv(
-            f"./data/media_deaths_results_{config.LANGUAGE}.csv"
-        )
+        results_file = config.OUTPUT_DIR / f"media_deaths_results_{config.LANGUAGE}.csv"
+        Log.info(f"Loading saved results from {results_file}")
+        media_deaths_df = pd.read_csv(results_file)
     else:
-        # Load and format death data
-        death_df = load_leading_causes(config)
+        # Load and format death data using configured loader
+        data_loader = get_loader(config.DATA_LOADER)
+        death_df = data_loader()
+
+        # Validate data loader output
+        _validate_death_data(death_df, config)
         print()
 
         # Get media mentions
@@ -96,13 +98,10 @@ def main(config: Config, causes_of_death: list[str] | None = None):
 
         # Save results
         if config.OVERWRITE:
-            os.makedirs("./data", exist_ok=True)
-            media_deaths_df.to_csv(
-                f"./data/media_deaths_results_{config.LANGUAGE}.csv", index=False
-            )
-            Log.success(
-                f"Saved analysis results to ./data/media_deaths_results_{config.LANGUAGE}.csv"
-            )
+            config.OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+            results_file = config.OUTPUT_DIR / f"media_deaths_results_{config.LANGUAGE}.csv"
+            media_deaths_df.to_csv(results_file, index=False)
+            Log.success(f"Saved analysis results to {results_file}")
         print()
 
     # Display summary statistics
@@ -124,6 +123,7 @@ def main(config: Config, causes_of_death: list[str] | None = None):
 
     # 1. Media mentions by source
     Log.info("Generating media mentions by source plot...")
+    plot_save_path = config.OUTPUT_DIR / "media_deaths_by_source.png"
     plot_media_deaths_matplotlib(
         media_deaths_df=media_deaths_df,
         causes_of_death=CAUSES_OF_DEATH,
@@ -141,7 +141,7 @@ def main(config: Config, causes_of_death: list[str] | None = None):
         year=config.YEAR,
         absolute=False,
         title=f"Media mentions of causes of death in {config.YEAR}",
-        save_path="data/media_deaths_by_source.png",
+        save_path=str(plot_save_path),
     )
     print()
 
@@ -149,164 +149,78 @@ def main(config: Config, causes_of_death: list[str] | None = None):
     Log.success("All tasks completed successfully")
 
 
-# ============================================================================
-# FETCH DATA FUNCTIONS
-# ============================================================================
-def load_leading_causes(config: Config):
-    """Load data from GenCat Salut.
+# ===============================================================
+# DATA VALIDATION FUNCTIONS
+# ==============================================================
 
-    This data belongs to 2023 report on mortality in Catalonia.
 
-    More info: https://scientiasalut.gencat.cat/handle/11351/13451.2
+def _validate_death_data(death_df: pd.DataFrame, config: Config) -> None:
+    """Validate that data loader output meets required specifications.
+
+    Checks:
+    1. DataFrame has required columns: 'cause', 'deaths', 'year'
+    2. Year column contains only a single value matching config.YEAR
+    3. Cause values are all present in config.CAUSES_OF_DEATH_ALL
+    4. No duplicate (year, cause) entries exist
 
     Args:
+        death_df: DataFrame returned by data loader
         config: Configuration object
+
+    Raises:
+        ValueError: If any validation check fails
     """
-    Log.info("Loading deaths data from GenCat Salut...")
-    # Fetch data
-    df = _fetch_data()
+    # Check 1: Required columns exist
+    required_columns = {"cause", "deaths", "year"}
+    actual_columns = set(death_df.columns)
+    missing_columns = required_columns - actual_columns
 
-    # Select relevant rows
-    df = _clean_data(df)
-
-    # Discard columns by sex (keep code column)
-    df = df[["code", "cause", "total_deaths"]]
-    df = df.rename(columns={"total_deaths": "deaths"})
-    df["year"] = config.YEAR
-
-    # Top 3 causes
-    df = _aggregate_causes(df)
-
-    # Dtypes
-    df = df.astype({"deaths": "Int64", "year": "Int64"})
-    return df
-
-
-def _fetch_data():
-    """Load data from GenCat Salut.
-
-    This data belongs to 2023 report on mortality in Catalonia.
-
-    More info: https://scientiasalut.gencat.cat/handle/11351/13451.2
-    """
-    file_url = "https://scientiasalut.gencat.cat/bitstream/handle/11351/13451.2/analisi-mortalitat-catalunya-2023-taules.xlsx?sequence=2&isAllowed=y"
-    sheet_name = "73 grups de causes"
-    df = pd.read_excel(file_url, sheet_name=sheet_name, skiprows=235)
-    return df
-
-
-def _clean_data(df):
-    """Clean data from GenCat Salut.
-
-    - Select relevant rows
-    - Drop unnecessary columns
-    - Rename columns
-    """
-    TRANSLATIONS = {
-        "Dones": "female",
-        "Homes": "male",
-        "Defuncions": "deaths",
-        "Percentatge": "share",
-        "Total": "total",
-    }
-
-    # Select relevant rows
-    NUM_ROWS = 75
-    df = df.head(NUM_ROWS)
-
-    # Sanity check
-    assert "Dones" in df.columns
-    assert df.loc[0, "Dones"] == "Defuncions"
-    assert df.loc[1, "Unnamed: 2"] == "1  .Infeccioses intestinals"
-    assert df.loc[NUM_ROWS - 1, "Unnamed: 2"] == "Total"
-
-    # Drop unnecessary columns
-    df = df.dropna(how="all", axis=1)
-
-    # Rename columns
-    ## Sex
-    columns_sex = [pd.NA if "Unnamed" in x else x for x in df.columns]
-    columns_sex = pd.Series(columns_sex).ffill().tolist()
-    columns_sex = [TRANSLATIONS.get(x, x) for x in columns_sex]
-    ## Metric
-    columns_metric = df.loc[0].to_list()
-    columns_metric = [TRANSLATIONS.get(x, x) for x in columns_metric]
-    ## Combine
-    columns = ["cause"] + [
-        f"{s}_{m}" for s, m in zip(columns_sex[1:], columns_metric[1:])
-    ]
-
-    df.columns = columns
-
-    # Drop first row
-    df = df.drop(index=0).reset_index(drop=True)
-
-    # Extract code and cause name
-    def extract_code_and_cause(text):
-        """Extract code number and cause name from format '[NUMBER] .[CAUSE_NAME]'."""
-        if pd.isna(text) or text == "Total":
-            return None, text
-
-        # Split by first occurrence of '.'
-        parts = text.split(".", 1)
-        if len(parts) == 2:
-            code = parts[0].strip()
-            cause = parts[1].strip()
-            return code, cause
-        return None, text
-
-    # Apply extraction
-    df[["code", "cause"]] = df["cause"].apply(
-        lambda x: pd.Series(extract_code_and_cause(x))
-    )
-    df["code"] = df["code"].astype("Int64")
-
-    # Sort
-    df = df.sort_values("total_deaths", ascending=False)
-
-    return df
-
-
-def _aggregate_causes(df):
-    CAUSES = {
-        "heart disease": {
-            "causes": [
-                "Isquèmiques del cor",
-                "Resta del cor",
-                "Insuficiència cardíaca",
-            ]
-        },
-        "homicide": {
-            "causes": ["Homicidis"],
-        },
-    }
-
-    mask_cancer = (
-        df["cause"].str.contains("T.M.")
-        | df["cause"].str.contains("T. benignes")
-        | df["cause"].isin(
-            [
-                # "T. benignes",
-                "Limfoma",
-                "Leucèmia",
-            ]
+    if missing_columns:
+        raise ValueError(
+            f"Data loader output missing required columns: {missing_columns}. "
+            f"Required columns: {required_columns}. "
+            f"Actual columns: {actual_columns}"
         )
+
+    # Check 2: Year column has single value matching config.YEAR
+    unique_years = death_df["year"].unique()
+    if len(unique_years) == 0:
+        raise ValueError("Data loader returned empty year column")
+    if len(unique_years) > 1:
+        raise ValueError(
+            f"Data loader returned multiple years: {sorted(unique_years)}. "
+            f"Expected only: {config.YEAR}"
+        )
+    if unique_years[0] != config.YEAR:
+        raise ValueError(
+            f"Data loader year ({unique_years[0]}) does not match config.YEAR ({config.YEAR})"
+        )
+
+    # Check 3: All causes are valid (present in config)
+    loader_causes = set(death_df["cause"].unique())
+    valid_causes = set(config.CAUSES_OF_DEATH_ALL)
+    invalid_causes = loader_causes - valid_causes
+
+    if invalid_causes:
+        raise ValueError(
+            f"Data loader returned invalid causes: {invalid_causes}. "
+            f"Valid causes from config: {valid_causes}"
+        )
+
+    # Check 4: No duplicate (year, cause) entries
+    duplicate_check = death_df.groupby(["year", "cause"]).size()
+    duplicates = duplicate_check[duplicate_check > 1]
+
+    if len(duplicates) > 0:
+        duplicate_entries = duplicates.to_dict()
+        raise ValueError(
+            f"Data loader returned duplicate (year, cause) entries: {duplicate_entries}"
+        )
+
+    Log.success(
+        f"Data validation passed: {len(death_df)} rows, "
+        f"{len(loader_causes)} causes for year {config.YEAR}"
     )
-
-    # Create new agg cause
-    df.loc[mask_cancer, "cause_agg"] = "cancer"
-    for cause in CAUSES:
-        mask = df["cause"].isin(CAUSES[cause]["causes"])
-        df.loc[mask, "cause_agg"] = cause
-
-    # Drop irrelevant causes
-    df = df.dropna(subset=["cause_agg"])
-
-    # Aggregate
-    df = df.groupby(["cause_agg", "year"], as_index=False)["deaths"].sum()
-    df = df.rename(columns={"cause_agg": "cause"})
-
-    return df
 
 
 # ===============================================================
