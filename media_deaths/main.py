@@ -32,7 +32,9 @@ discover_loaders()
 # ============================================================================
 
 
-def main(config: Config, causes_of_death: list[str] | None = None, dry_run: bool = False):
+def main(
+    config: Config, causes_of_death: list[str] | None = None, dry_run: bool = False
+):
     """Main execution function.
 
     Args:

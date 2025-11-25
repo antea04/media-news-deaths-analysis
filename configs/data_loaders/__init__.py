@@ -6,3 +6,4 @@ Each loader registers itself with the central registry in media_deaths.data_load
 
 # Import all loader modules to trigger registration
 from . import catalan_gencat  # noqa: F401
+from . import cdc  # noqa: F401

@@ -22,6 +22,8 @@ def load_data():
     # format death data
     df = format_death_data(leading_causes_df, external_causes_df)
 
+    # Drop NAs
+    df = df.dropna(subset="cause")
     return df
 
 
