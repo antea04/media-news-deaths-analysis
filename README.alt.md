@@ -78,6 +78,9 @@ This tool queries news outlets for mentions of different causes of death (e.g., 
 # List available configurations
 uv run media-deaths --list-languages
 
+# Show execution plan (dry run)
+uv run media-deaths ca_ES --dry-run
+
 # Run analysis
 uv run media-deaths ca_ES
 

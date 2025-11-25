@@ -18,7 +18,6 @@ runtime:
 
 data:
   year: 2023
-  language: "en"
   # Data loader module to use for fetching mortality data. This should be a string, matching a registered data loader (see data_loaders/)
   data_loader: "cdc"
 
