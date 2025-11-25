@@ -3,8 +3,9 @@
 # Details of the execution, not language-dependent
 runtime:
   verbose: true
-  # Whether you want to rerun the queries or not - rerunning the queries can take ~30 minutes.
-  # If false, the script uses the results found in ./data/media_deaths_mentions.csv
+  # Whether you want to rerun the queries or not.
+  # Time estimate: ~0.5 min per query × (num_causes × num_sources)
+  # If false, the script uses cached results from ./data/media_deaths_mentions.csv
   rerun_queries: true
   # Whether you want to run single keyword queries (only 1 mention per article) vs multiple keyword queries (multiple mentions per article)
   run_single_queries: false
