@@ -82,7 +82,7 @@ def main(config: Config, causes_of_death: list[str] | None = None):
             api_sleep=config.API_SLEEP,
             verbose=config.VERBOSE,
             queries=config.QUERIES,
-            collecions=config.COLLECTIONS,
+            collections=config.COLLECTIONS,
             language=config.LANGUAGE,
             overwrite=config.OVERWRITE,
             run_single_queries=config.RUN_SINGLE_QUERIES,
@@ -357,7 +357,7 @@ def get_media_mentions(
 
         Log.section("QUERYING MEDIA CLOUD API")
         Log.warning(
-            "This may take ~5 minutes due to API rate limits (2 requests per minute)"
+            "This may take some minutes due to API rate limits (2 requests per minute)"
         )
 
         # Initialize search API
@@ -402,6 +402,8 @@ def get_media_mentions(
                 source_name=s_name,
                 queries=single_queries_in_use,
                 year=year,
+                api_sleep=api_sleep,
+                verbose=verbose,
             )
             single_mentions_ls.append(single_mentions.copy(deep=True))
 
@@ -415,7 +417,9 @@ def get_media_mentions(
                 source_name=c_name,
                 queries=queries_in_use,
                 year=year,
+                api_sleep=api_sleep,
                 collection_ids=[c_id],
+                verbose=verbose,
             )
             mentions_ls.append(collection_mentions.copy(deep=True))
 
@@ -427,6 +431,8 @@ def get_media_mentions(
                 source_name=c_name,
                 queries=single_queries_in_use,
                 year=year,
+                api_sleep=api_sleep,
+                verbose=verbose,
                 collection_ids=[c_id],
             )
             single_mentions_ls.append(collection_single_mentions.copy(deep=True))
