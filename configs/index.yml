@@ -14,10 +14,15 @@
 #     config: Path to config file (relative to this index file)
 #     description: Optional description
 
-ca_es:
+ca_ES:
   name: Catalan
-  config: cat.yml
+  config: ca_ES.yml
   description: Catalan media analysis using GenCat Salut data
+
+en_US:
+  name: English (United States)
+  config: en_US.yml
+  description: US media analysis using CDC data
 # Add more languages here:
 # en-us:
 #   name: English (United States)
