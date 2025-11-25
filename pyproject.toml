@@ -8,5 +8,6 @@ dependencies = [
     "dotenv>=0.9.9",
     "matplotlib>=3.10.7",
     "mediacloud>=4.5.0",
+    "owid-catalog>=0.4.3",
     "pandas>=2.3.3",
 ]
