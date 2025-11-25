@@ -11,7 +11,6 @@ https://docs.owid.io/projects/etl/analyses/media_deaths/methodology/
 
 import datetime as dt
 import os
-import sys
 import time
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -22,6 +21,90 @@ from query_generation import (
     create_full_queries,
     create_single_keyword_queries,
 )
+
+MEDIA_OUTLET = [
+    "vilaweb.cat",
+    "ara.cat",
+    "elperiodico.cat",
+    "Notícies - 324",  # public
+]
+
+#
+# Mapping
+# code, name_source, name_standard
+MAPPING = [
+    {
+        "code": "A00-A09",
+        "name_source": "Infectious and parasitic diseases",
+        "name_standard": "Intestinal infectious diseases",
+    }
+]
+# ============================================================================
+# LOGGING COLORS
+# ============================================================================
+
+
+class Colors:
+    """ANSI color codes for terminal output."""
+
+    RESET = "\033[0m"
+    BOLD = "\033[1m"
+    DIM = "\033[2m"
+
+    # Regular colors
+    BLACK = "\033[30m"
+    RED = "\033[31m"
+    GREEN = "\033[32m"
+    YELLOW = "\033[33m"
+    BLUE = "\033[34m"
+    MAGENTA = "\033[35m"
+    CYAN = "\033[36m"
+    WHITE = "\033[37m"
+
+    # Bright colors
+    BRIGHT_BLACK = "\033[90m"
+    BRIGHT_RED = "\033[91m"
+    BRIGHT_GREEN = "\033[92m"
+    BRIGHT_YELLOW = "\033[93m"
+    BRIGHT_BLUE = "\033[94m"
+    BRIGHT_MAGENTA = "\033[95m"
+    BRIGHT_CYAN = "\033[96m"
+    BRIGHT_WHITE = "\033[97m"
+
+
+def log_info(msg):
+    """Log informational message in blue."""
+    print(f"{Colors.BLUE}ℹ {msg}{Colors.RESET}")
+
+
+def log_success(msg):
+    """Log success message in green."""
+    print(f"{Colors.GREEN}✓ {msg}{Colors.RESET}")
+
+
+def log_warning(msg):
+    """Log warning message in yellow."""
+    print(f"{Colors.YELLOW}⚠ {msg}{Colors.RESET}")
+
+
+def log_error(msg):
+    """Log error message in red."""
+    print(f"{Colors.RED}✗ {msg}{Colors.RESET}")
+
+
+def log_query(source, cause, query, count, elapsed):
+    """Log query details with structured formatting."""
+    print(f"{Colors.CYAN}→ {source}{Colors.RESET} | {Colors.BOLD}{cause}{Colors.RESET}")
+    print(f"  {Colors.DIM}Query: {query}{Colors.RESET}")
+    print(
+        f"  {Colors.GREEN}Found {count:,} mentions{Colors.RESET} {Colors.DIM}({elapsed:.2f}s){Colors.RESET}"
+    )
+
+
+def log_section(title):
+    """Log section header."""
+    print(f"\n{Colors.BOLD}{Colors.BRIGHT_CYAN}{title}{Colors.RESET}")
+    print(f"{Colors.DIM}{'─' * 60}{Colors.RESET}")
 
 
 # ============================================================================
@@ -103,12 +186,6 @@ FIXED_COLOURS = {
     "diarrhea": "#9edae5",  # Light teal
 }
 
-# Media Cloud source IDs
-NYT_ID = 1
-WAPO_ID = 2
-FOX_ID = 1092
-US_COLLECTION_ID = 34412234
-
 # Media outlets information, replace this with any other outlets if needed
 OUTLETS = [
     {"full_name": "The New York Times", "id": 1, "short_name": "nyt"},
@@ -116,119 +193,14 @@ OUTLETS = [
     {"full_name": "Fox News", "id": 1092, "short_name": "fox"},
 ]
 # collections information, replace or add other collections if needed
-COLLECTIONS = [{"full_name": "US Collection", "id": 34412234, "short_name": "us"}]
+COLLECTIONS = [
+    {"full_name": "US Collection", "id": 34412234, "short_name": "us"},
+]
 
 
 # ===============================================================
 # DATA PROCESSING FUNCTIONS
 # ==============================================================
-
-
-def format_death_data(leading_causes_df, external_causes_df):
-    """
-    Format/process deaths data from CDC Wonder database.
-    Replace with specific death file for country if needed.
-
-    Returns:
-        pd.DataFrame: Processed deaths data with columns: cause, year, deaths
-    """
-
-    # Map CDC names to our keywords
-    CAUSES_MAP = {
-        "#Diseases of heart (I00-I09,I11,I13,I20-I51)": "heart disease",
-        "#Malignant neoplasms (C00-C97)": "cancer",
-        "#Accidents (unintentional injuries) (V01-X59,Y85-Y86)": "accidents",
-        "#Cerebrovascular diseases (I60-I69)": "stroke",
-        "#Chronic lower respiratory diseases (J40-J47)": "respiratory",
-        "#Alzheimer disease (G30)": "alzheimers",
-        "#Diabetes mellitus (E10-E14)": "diabetes",
-        "#Nephritis, nephrotic syndrome and nephrosis (N00-N07,N17-N19,N25-N27)": "kidney",
-        "#Chronic liver disease and cirrhosis (K70,K73-K74)": "liver",
-        "#COVID-19 (U07.1)": "covid",
-        "#Intentional self-harm (suicide) (*U03,X60-X84,Y87.0)": "suicide",
-        "#Influenza and pneumonia (J09-J18)": "influenza",
-    }
-
-    # Process leading causes
-    leading_causes_df["cause"] = leading_causes_df["15 Leading Causes of Death"].map(
-        CAUSES_MAP
-    )
-    leading_causes_df = leading_causes_df.drop(
-        columns=[
-            "Notes",
-            "Population",
-            "15 Leading Causes of Death",
-            "15 Leading Causes of Death Code",
-            "Crude Rate",
-        ],
-        errors="raise",
-    )
-    leading_causes_df = leading_causes_df.dropna(subset=["cause", "Deaths"], how="all")
-    leading_causes_df["year"] = YEAR
-
-    # Format external causes df
-    # Replace Suppressed/Unreliable with pd.NA
-    external_causes_df = external_causes_df.replace("Suppressed", pd.NA)
-    external_causes_df = external_causes_df.replace("Unreliable", pd.NA)
-    external_causes_df["Deaths"] = external_causes_df["Deaths"].astype("Int64")
-    external_causes_df = external_causes_df.drop(
-        columns=["Notes", "Population", "ICD Sub-Chapter Code"], errors="raise"
-    )
-    external_causes_df["year"] = YEAR
-
-    # Combine both dataframes and add terrorism deaths
-    death_df = create_tb_death(leading_causes_df, external_causes_df)
-
-    print(f"Loaded death data for {len(death_df)} causes")
-    return death_df
-
-
-def create_tb_death(tb_leading_causes, tb_ext_causes):
-    """
-    Combine leading causes and external causes data.
-
-    Args:
-        tb_leading_causes: DataFrame with leading causes
-        tb_ext_causes: DataFrame with external causes
-
-    Returns:
-        pd.DataFrame: Combined deaths data
-    """
-    # Get drug overdose deaths
-    drug_od_deaths = tb_ext_causes[tb_ext_causes["Cause of death Code"] == "X42"][
-        "Deaths"
-    ].iloc[0]
-
-    # Get homicide deaths
-    ext_causes_gb = (
-        tb_ext_causes[["Deaths", "ICD Sub-Chapter"]]
-        .groupby("ICD Sub-Chapter")
-        .sum()
-        .reset_index()
-    )
-    homicide_deaths = ext_causes_gb[ext_causes_gb["ICD Sub-Chapter"] == "Assault"][
-        "Deaths"
-    ].iloc[0]
-
-    terrorism_deaths = TERRORISM_DEATHS_2023
-
-    deaths = [
-        {"cause": "drug overdose", "year": YEAR, "deaths": drug_od_deaths},
-        {"cause": "homicide", "year": YEAR, "deaths": homicide_deaths},
-        {"cause": "terrorism", "year": YEAR, "deaths": terrorism_deaths},
-    ]
-
-    tb_leading_causes.columns = [col.lower() for col in tb_leading_causes.columns]
-    tb_deaths = pd.concat([tb_leading_causes, pd.DataFrame(deaths)])
-
-    # Subtract drug overdose deaths from accidents
-    acc_deaths = tb_deaths[tb_deaths["cause"] == "accidents"]["deaths"].iloc[0]
-    drug_od_deaths = tb_deaths[tb_deaths["cause"] == "drug overdose"]["deaths"].iloc[0]
-    tb_deaths.loc[tb_deaths["cause"] == "accidents", "deaths"] = (
-        acc_deaths - drug_od_deaths
-    )
-
-    return tb_deaths
 
 
 def get_start_end(year):
@@ -302,14 +274,10 @@ def get_mentions_from_source(
             diff_time = time_now - start_time_overall
             minutes_elapsed = int(diff_time / 60)
             secconds_elapsed = int(diff_time - (60 * int(minutes_elapsed)))
-            print(f"Time elapsed: {minutes_elapsed:02d}:{secconds_elapsed:02d} minutes")
-            print(f"Querying: {source_name} for CoD {name}")
-            print(f"Query: {query}")
             print(
-                f"Count: {cnt} mentions for {name} in the {source_name} "
-                f"in {year} - retrieved in {time.time() - start_time:.2f} seconds"
+                f"{Colors.DIM}Elapsed: {minutes_elapsed:02d}:{secconds_elapsed:02d}{Colors.RESET}"
             )
-            print("-" * 40)
+            log_query(source_name, name, query, cnt, time.time() - start_time)
         query_count.append(
             {
                 "cause": name,
@@ -335,9 +303,9 @@ def get_media_mentions(outlets=OUTLETS, run_single_queries=RUN_SINGLE_QUERIES):
                 "or set RERUN_QUERIES=False to use cached data"
             )
 
-        print("Querying Media Cloud API...")
-        print(
-            "This may take ~30 minutes due to API rate limits (2 requests per minute)..."
+        log_section("QUERYING MEDIA CLOUD API")
+        log_warning(
+            "This may take ~30 minutes due to API rate limits (2 requests per minute)"
         )
 
         # Initialize search API
@@ -421,10 +389,12 @@ def get_media_mentions(outlets=OUTLETS, run_single_queries=RUN_SINGLE_QUERIES):
             mentions_df.to_csv(
                 f"./data/media_deaths_mentions_{LANGUAGE}.csv", index=False
             )
-            print(f"Saved mentions data to ./data/media_deaths_mentions_{LANGUAGE}.csv")
+            log_success(
+                f"Saved mentions data to ./data/media_deaths_mentions_{LANGUAGE}.csv"
+            )
     else:
-        print(
-            f"Loading cached mentions data from ./data/media_deaths_mentions_{LANGUAGE}.csv..."
+        log_info(
+            f"Loading cached mentions data from ./data/media_deaths_mentions_{LANGUAGE}.csv"
         )
         mentions_df = pd.read_csv(f"./data/media_deaths_mentions_{LANGUAGE}.csv")
     return mentions_df
@@ -470,7 +440,7 @@ def analyze_data(mentions_df, death_df, run_single_queries=RUN_SINGLE_QUERIES):
     Returns:
         pd.DataFrame: Analyzed and pivoted data
     """
-    print("Analyzing data...")
+    log_info("Analyzing data...")
 
     # Copy dataframes
     tb_mentions = mentions_df.copy(deep=True)
@@ -615,7 +585,7 @@ def plot_media_deaths_matplotlib(
     if save_path:
         os.makedirs(os.path.dirname(save_path) or ".", exist_ok=True)
         plt.savefig(save_path, dpi=300, bbox_inches="tight")
-        print(f"Saved plot to {save_path}")
+        log_success(f"Saved plot to {save_path}")
     plt.show()
 
 
@@ -624,40 +594,223 @@ def plot_media_deaths_matplotlib(
 # ============================================================================
 
 
+TRANSLATIONS = {
+    "Dones": "female",
+    "Homes": "male",
+    "Defuncions": "deaths",
+    "Percentatge": "share",
+    "Total": "total",
+}
+
+
+def _fetch_data():
+    """Load data from GenCat Salut.
+
+    This data belongs to 2023 report on mortality in Catalonia.
+
+    More info: https://scientiasalut.gencat.cat/handle/11351/13451.2
+    """
+    file_url = "https://scientiasalut.gencat.cat/bitstream/handle/11351/13451.2/analisi-mortalitat-catalunya-2023-taules.xlsx?sequence=2&isAllowed=y"
+    sheet_name = "73 grups de causes"
+    df = pd.read_excel(file_url, sheet_name=sheet_name, skiprows=235)
+    return df
+
+
+def _clean_data(df):
+    """Clean data from GenCat Salut.
+
+    - Select relevant rows
+    - Drop unnecessary columns
+    - Rename columns
+    """
+    # Select relevant rows
+    NUM_ROWS = 75
+    df = df.head(NUM_ROWS)
+
+    # Sanity check
+    assert "Dones" in df.columns
+    assert df.loc[0, "Dones"] == "Defuncions"
+    assert df.loc[1, "Unnamed: 2"] == "1  .Infeccioses intestinals"
+    assert df.loc[NUM_ROWS - 1, "Unnamed: 2"] == "Total"
+
+    # Drop unnecessary columns
+    df = df.dropna(how="all", axis=1)
+
+    # Rename columns
+    ## Sex
+    columns_sex = [pd.NA if "Unnamed" in x else x for x in df.columns]
+    columns_sex = pd.Series(columns_sex).ffill().tolist()
+    columns_sex = [TRANSLATIONS.get(x, x) for x in columns_sex]
+    ## Metric
+    columns_metric = df.loc[0].to_list()
+    columns_metric = [TRANSLATIONS.get(x, x) for x in columns_metric]
+    ## Combine
+    columns = ["cause"] + [
+        f"{s}_{m}" for s, m in zip(columns_sex[1:], columns_metric[1:])
+    ]
+
+    df.columns = columns
+
+    # Drop first row
+    df = df.drop(index=0).reset_index(drop=True)
+
+    # Extract code and cause name
+    def extract_code_and_cause(text):
+        """Extract code number and cause name from format '[NUMBER] .[CAUSE_NAME]'."""
+        if pd.isna(text) or text == "Total":
+            return None, text
+
+        # Split by first occurrence of '.'
+        parts = text.split(".", 1)
+        if len(parts) == 2:
+            code = parts[0].strip()
+            cause = parts[1].strip()
+            return code, cause
+        return None, text
+
+    # Apply extraction
+    df[["code", "cause"]] = df["cause"].apply(
+        lambda x: pd.Series(extract_code_and_cause(x))
+    )
+    df["code"] = df["code"].astype("Int64")
+
+    # Sort
+    df = df.sort_values("total_deaths", ascending=False)
+
+    return df
+
+
+def load_leading_causes():
+    """Load data from GenCat Salut.
+
+    This data belongs to 2023 report on mortality in Catalonia.
+
+    More info: https://scientiasalut.gencat.cat/handle/11351/13451.2
+    """
+    # Fetch data
+    df = _fetch_data()
+
+    # Select relevant rows
+    df = _clean_data(df)
+
+    # Discard columns by sex (keep code column)
+    df = df[["code", "cause", "total_deaths"]]
+    df = df.rename(columns={"total_deaths": "deaths"})
+    df["year"] = YEAR
+
+    # Top 12 causes
+    causes_top12 = df[df["cause"] != "Total"]["cause"].to_list()[:12]
+
+    # Mapping
+    mapping = {
+        "Isquèmiques del cor": {
+            "english": "Ischemic heart diseases",
+            "keywords": [],
+            "short_name": "",
+        },
+        "Demències": {
+            "english": "Dementia",
+            "keywords": [],
+            "short_name": "demencies",
+        },
+        "Resta del cor": {
+            "english": "Other forms of heart disease",
+            "keywords": [],
+            "short_name": "",
+        },
+        "T.M.pulmó": {
+            "english": "Malignant neoplasm of bronchus and lung",
+            "keywords": [],
+            "short_name": "",
+        },
+        "Insuficiència cardíaca": {
+            "english": "Heart failure",
+            "keywords": [],
+            "short_name": "",
+        },
+        "Cerebrovasculars": {
+            "english": "Cerebrovascular diseases",
+            "keywords": [],
+            "short_name": "",
+        },
+        "Resta respiratòries": {
+            "english": "Other respiratory diseases",
+            "keywords": [],
+            "short_name": "",
+        },
+        "Ronyó": {
+            "english": "Kidney",
+            "keywords": [],
+            "short_name": "",
+        },
+        "Resta digestiu": {
+            "english": "Other diseases of the digestive system",
+            "keywords": [],
+            "short_name": "",
+        },
+        "Hipertensives": {
+            "english": "Hipertension",
+            "keywords": [],
+            "short_name": "",
+        },
+        "Alzheimer": {
+            "english": "Alzheimer's",
+            "keywords": [],
+            "short_name": "",
+        },
+        "Bronquitis i asma": {
+            "english": "Bronchitis and asthma",
+            "keywords": [],
+            "short_name": "",
+        },
+        # Extra: homicides, drug abuse, terrorism
+        "Homicidis": {
+            "english": "Homicides",
+            "keywords": [],
+            "short_name": "homicide",
+        },
+        "Terrorisme": {
+            "english": "Terrorism",
+            "keywords": [],
+        },
+        "Sobredosi": {
+            "english": "Drug overdose",
+            "keywords": [],
+            "short_name": "drug overdose",
+        },
+    }
+
+    # Sobredosi: https://govern.cat/salapremsa/notes-premsa/634722/l-any-2023-catalunya-va-evitar-la-mort-en-146-sobredosis-gracies-al-les-seves-politiques-en-danys-i-prevencio
+
+    df = df[df[""]]
+    return df
+
+
 def main(outlets=OUTLETS):
     """Main execution function."""
-    print("=" * 80)
-    print("MEDIA DEATHS ANALYSIS")
-    print("=" * 80)
-    print(f"Year: {YEAR}")
-    print(f"Language: {LANGUAGE}")
-    print(f"Outlets: {[outlet['full_name'] for outlet in OUTLETS]}")
-    print(f"Rerun queries: {RERUN_QUERIES}")
-    print(f"Run single keyword queries: {RUN_SINGLE_QUERIES}")
-    print(f"Use saved results: {USE_SAVED_RESULTS}")
-    print("=" * 80)
+    print()
+    log_section("MEDIA DEATHS ANALYSIS")
+    print(f"{Colors.DIM}Year:{Colors.RESET} {YEAR}")
+    print(f"{Colors.DIM}Language:{Colors.RESET} {LANGUAGE}")
+    print(
+        f"{Colors.DIM}Outlets:{Colors.RESET} {', '.join([outlet['full_name'] for outlet in OUTLETS])}"
+    )
+    print(f"{Colors.DIM}Rerun queries:{Colors.RESET} {RERUN_QUERIES}")
+    print(f"{Colors.DIM}Run single keyword queries:{Colors.RESET} {RUN_SINGLE_QUERIES}")
+    print(f"{Colors.DIM}Use saved results:{Colors.RESET} {USE_SAVED_RESULTS}")
     print()
 
     # Load or use saved results
     if USE_SAVED_RESULTS:
-        print(
-            f"Loading saved results from ./data/media_deaths_results_{LANGUAGE}.csv..."
+        log_info(
+            f"Loading saved results from ./data/media_deaths_results_{LANGUAGE}.csv"
         )
         media_deaths_df = pd.read_csv(f"./data/media_deaths_results_{LANGUAGE}.csv")
     else:
         # Load death data from CDC snapshots
-        print("Loading deaths data...")
-        leading_causes_df = pd.read_csv(
-            "https://snapshots.owid.io/6f/b0139e189d66756d94f84fafab7c3c",
-            sep="\t",
-            storage_options=USER_AGENT,
-        )
-        external_causes_df = pd.read_csv(
-            "https://snapshots.owid.io/27/cb223d374b691fbd451c1985d0cf31",
-            storage_options=USER_AGENT,
-        )
+        log_info("Loading deaths data from CDC...")
         # format death data
-        death_df = format_death_data(leading_causes_df, external_causes_df)
+        death_df = load_leading_causes()
         print()
 
         # Get media mentions
@@ -673,15 +826,13 @@ def main(outlets=OUTLETS):
             media_deaths_df.to_csv(
                 f"./data/media_deaths_results_{LANGUAGE}.csv", index=False
             )
-            print(
+            log_success(
                 f"Saved analysis results to ./data/media_deaths_results_{LANGUAGE}.csv"
             )
         print()
 
     # Display summary statistics
-    print("=" * 80)
-    print("SUMMARY STATISTICS")
-    print("=" * 80)
+    log_section("SUMMARY STATISTICS")
     print(
         media_deaths_df[
             [
@@ -697,13 +848,10 @@ def main(outlets=OUTLETS):
     print()
 
     # Create visualizations
-    print("=" * 80)
-    print("CREATING VISUALIZATIONS")
-    print("=" * 80)
-    print()
+    log_section("CREATING VISUALIZATIONS")
 
     # 1. Media mentions by source
-    print("1. Media mentions by source...")
+    log_info("Generating media mentions by source plot...")
     plot_media_deaths_matplotlib(
         media_deaths_df,
         columns=["deaths_share", "nyt_share", "wapo_share", "fox_share", "us_share"],
@@ -714,10 +862,9 @@ def main(outlets=OUTLETS):
     )
     print()
 
-    print("=" * 80)
-    print("ANALYSIS COMPLETE")
-    print("=" * 80)
+    log_section("ANALYSIS COMPLETE")
+    log_success("All tasks completed successfully")
 
 
-if __name__ == "__main__":
-    main()
+# if __name__ == "__main__":
+#     main()
