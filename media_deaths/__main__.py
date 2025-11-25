@@ -18,6 +18,7 @@ def cli():
         description="Analyze media mentions of causes of death compared to actual mortality data",
         epilog="Examples:\n"
         "  media-deaths ca_ES                   # Use Catalan (Spain) configuration\n"
+        "  media-deaths ca_ES --dry-run         # Show execution plan without running\n"
         "  media-deaths --custom-config my.yml  # Use custom config file\n"
         "  media-deaths --list-languages        # Show available language-region codes",
         formatter_class=argparse.RawDescriptionHelpFormatter,

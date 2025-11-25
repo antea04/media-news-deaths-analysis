@@ -51,6 +51,10 @@ def main(
     CAUSES_OF_DEATH = causes_of_death
     outlets = config.OUTLETS
 
+    # Set up output directory structure: ./data/{code}/
+    output_dir = config.OUTPUT_DIR / config.CODE
+    output_dir.mkdir(parents=True, exist_ok=True)
+
     # Calculate estimated time if running queries
     if config.RERUN_QUERIES and not config.USE_SAVED_RESULTS:
         num_causes = len(CAUSES_OF_DEATH)
@@ -65,7 +69,7 @@ def main(
     # Prepare summary info
     summary_info = {
         "year": config.YEAR,
-        "language": config.LANGUAGE,
+        "code": config.CODE,
         "outlets": ", ".join([outlet["full_name"] for outlet in outlets]),
         "rerun_queries": config.RERUN_QUERIES,
         "run_single_keyword_queries": config.RUN_SINGLE_QUERIES,
@@ -112,10 +116,10 @@ def main(
 
         # Show output files
         Log.section("Output Files")
-        print(f"  Directory: {config.OUTPUT_DIR}")
-        print(f"  - media_deaths_mentions_{config.LANGUAGE}.csv")
-        print(f"  - media_deaths_results_{config.LANGUAGE}.csv")
-        print(f"  - media_deaths_plot_{config.LANGUAGE}.png")
+        print(f"  Directory: {output_dir}")
+        print(f"  - media_deaths_mentions.csv")
+        print(f"  - media_deaths_results.csv")
+        print(f"  - media_deaths_plot.png")
         print()
 
         Log.success("Dry run completed. Run without --dry-run to execute analysis.")
@@ -123,7 +127,7 @@ def main(
 
     # Load or use saved results
     if config.USE_SAVED_RESULTS:
-        results_file = config.OUTPUT_DIR / f"media_deaths_results_{config.LANGUAGE}.csv"
+        results_file = output_dir / "media_deaths_results.csv"
         Log.info(f"Loading saved results from {results_file}")
         media_deaths_df = pd.read_csv(results_file)
     else:
@@ -146,10 +150,10 @@ def main(
             verbose=config.VERBOSE,
             queries=config.QUERIES,
             collections=config.COLLECTIONS,
-            language=config.LANGUAGE,
+            language_region=config.CODE,
             overwrite=config.OVERWRITE,
             run_single_queries=config.RUN_SINGLE_QUERIES,
-            output_dir=config.OUTPUT_DIR,
+            output_dir=output_dir,
         )
         print()
 
@@ -167,7 +171,7 @@ def main(
         if config.OVERWRITE:
             config.OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
             results_file = (
-                config.OUTPUT_DIR / f"media_deaths_results_{config.LANGUAGE}.csv"
+                config.OUTPUT_DIR / f"media_deaths_results_{config.CODE}.csv"
             )
             media_deaths_df.to_csv(results_file, index=False)
             Log.success(f"Saved analysis results to {results_file}")
@@ -394,7 +398,7 @@ def get_media_mentions(
     year: int,
     api_sleep: float,
     verbose: bool,
-    language: str,
+    language_region: str,
     overwrite: bool,
     run_single_queries: bool,
     output_dir,
@@ -517,11 +521,11 @@ def get_media_mentions(
 
         if overwrite:
             output_dir.mkdir(parents=True, exist_ok=True)
-            mentions_file = output_dir / f"media_deaths_mentions_{language}.csv"
+            mentions_file = output_dir / f"media_deaths_mentions_{language_region}.csv"
             mentions_df.to_csv(mentions_file, index=False)
             Log.success(f"Saved mentions data to {mentions_file}")
     else:
-        mentions_file = output_dir / f"media_deaths_mentions_{language}.csv"
+        mentions_file = output_dir / f"media_deaths_mentions_{language_region}.csv"
         Log.info(f"Loading cached mentions data from {mentions_file}")
         mentions_df = pd.read_csv(mentions_file)
 

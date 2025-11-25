@@ -39,14 +39,14 @@ class Config:
         # Media Cloud Token
         self.MC_API_TOKEN = os.getenv("MC_API_TOKEN")
 
-        # Set data variables (language, year, data loader)
+        # Derive language-region code from config filename (e.g., 'ca_ES' from 'ca_ES.yml')
+        self.CODE = self.config_path.stem
+
+        # Set data variables (year, data loader)
         data_config = self._config.get("data", {})
         self.YEAR = data_config.get("year")
         if not self.YEAR:
             raise ValueError("Missing required field 'data.year' in config")
-        self.LANGUAGE = data_config.get("language")
-        if not self.LANGUAGE:
-            raise ValueError("Missing required field 'data.language' in config")
         self.DATA_LOADER = data_config.get("data_loader")
         if not self.DATA_LOADER:
             raise ValueError(
