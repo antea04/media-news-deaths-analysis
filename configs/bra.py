@@ -30,9 +30,12 @@ CONFIG = {
     # Note: WHO has broad categories, so some causes are not available:
     # - stroke: included in "Cardiovascular diseases"
     # - alzheimers: included in "Neuropsychiatric conditions"
-    # - covid: included in "Respiratory infections" (not separate in 2020 WHO data)
+    # - covid: included in "Respiratory infections" (not separate in WHO)
     # - drug overdose: not separately categorized
     # - homicide: included in "Intentional injuries"
+    #
+    # Using WHO data means we can't separate COVID from flu/pneumonia.
+    # For 2020, "influenza" will include COVID deaths (282,637 total).
     "causes_of_death": [
         "heart disease",
         "cancer",
@@ -43,9 +46,9 @@ CONFIG = {
         "diabetes",
         "kidney",
         "liver",
-        # "covid",  # Not separate in WHO 2020 data (included in respiratory infections)
+        # "covid",  # Not separate in WHO (part of respiratory infections)
         "suicide",
-        "influenza",
+        "influenza",  # Includes COVID in 2020 (WHO limitation)
         # "drug overdose",  # Not in WHO
         # "homicide",  # Not separate in WHO (part of intentional injuries)
         "terrorism",
@@ -54,22 +57,17 @@ CONFIG = {
     # WHO data doesn't need mapping (handled by load_who_data.py)
     "causes_map": {},
 
-    # Colors for visualization
+    # Colors for visualization (only for causes in causes_of_death list)
     "colors": {
         "heart disease": "#1f77b4",
         "cancer": "#ff7f0e",
         "accidents": "#2ca02c",
-        "stroke": "#d62728",
         "respiratory": "#9467bd",
-        "alzheimers": "#8c564b",
         "diabetes": "#e377c2",
         "kidney": "#7f7f7f",
         "liver": "#bcbd22",
-        "covid": "#17becf",
         "suicide": "#aec7e8",
-        "influenza": "#ffbb78",
-        "drug overdose": "#98df8a",
-        "homicide": "#ff9896",
+        "influenza": "#ffbb78",  # Includes COVID coverage for 2020
         "terrorism": "#c5b0d5",
     },
 
@@ -178,28 +176,6 @@ CONFIG = {
             "exclude_terms": [],
         },
 
-        "stroke": {
-            "single_terms": [
-                "derrame cerebral",
-                "AVC",
-                "acidente vascular cerebral",
-                "derrame",
-                "isquemia cerebral",
-                "hemorragia cerebral",
-                "embolia cerebral",
-                "neurologia",
-            ],
-            "combinations": [
-                "derrame cerebral",
-                "AVC cerebral",
-                "acidente vascular cerebral",
-                "derrame cérebro",
-                "isquemia cerebral",
-                "hemorragia cerebral",
-            ],
-            "exclude_terms": [],
-        },
-
         "respiratory": {
             "single_terms": [
                 "doença pulmonar obstrutiva crônica",
@@ -218,21 +194,6 @@ CONFIG = {
                 "enfisema pulmão",
                 "asma pulmão",
                 "respiratória pulmão",
-            ],
-            "exclude_terms": [],
-        },
-
-        "alzheimers": {
-            "single_terms": [
-                "Alzheimer",
-                "Alzheimer's",
-                "doença de Alzheimer",
-                "demência",
-            ],
-            "combinations": [
-                "Alzheimer Alzheimer",
-                "Alzheimer demência",
-                "demência demência",
             ],
             "exclude_terms": [],
         },
@@ -299,24 +260,6 @@ CONFIG = {
             "exclude_terms": [],
         },
 
-        "covid": {
-            "single_terms": [
-                "COVID-19",
-                "COVID",
-                "coronavírus",
-                "coronavirus",
-                "SARS-CoV-2",
-                "covid",
-            ],
-            "combinations": [
-                "COVID-19 COVID-19",
-                "coronavírus coronavírus",
-                "COVID coronavírus",
-                "SARS-CoV-2 COVID",
-            ],
-            "exclude_terms": [],
-        },
-
         "suicide": {
             "single_terms": [
                 "suicídio",
@@ -336,13 +279,23 @@ CONFIG = {
         },
 
         "influenza": {
+            # NOTE: Includes COVID keywords because WHO's "Respiratory infections"
+            # category includes COVID + flu + pneumonia for 2020
             "single_terms": [
+                # Flu/pneumonia terms
                 "influenza",
                 "gripe",
                 "H1N1",
                 "pneumonia",
                 "infecção respiratória",
                 "infecção pulmonar",
+                # COVID terms (merged due to WHO data limitation)
+                "COVID-19",
+                "COVID",
+                "coronavírus",
+                "coronavirus",
+                "SARS-CoV-2",
+                "covid",
             ],
             "combinations": [
                 "influenza gripe",
@@ -350,61 +303,9 @@ CONFIG = {
                 "gripe respiratória",
                 "pneumonia pulmão",
                 "pneumonia respiratória",
-            ],
-            "exclude_terms": [],
-        },
-
-        "drug overdose": {
-            "single_terms": [
-                "overdose",
-                "sobredose",
-                "uso de drogas",
-                "dependência química",
-                "vício em drogas",
-                "abuso de substâncias",
-                "crack",
-                "cocaína",
-                "heroína",
-                "opioides",
-                "drogas",
-            ],
-            "combinations": [
-                "overdose drogas",
-                "sobredose drogas",
-                "overdose morte",
-                "dependência química drogas",
-                "vício drogas",
-                "abuso substâncias drogas",
-                "cocaína overdose",
-            ],
-            "exclude_terms": [],
-        },
-
-        "homicide": {
-            "single_terms": [
-                "homicídio",
-                "assassinato",
-                "assassino",
-                "morte violenta",
-                "crime violento",
-                "violência",
-                "tiroteio",
-                "bala perdida",
-                "fuzilamento",
-                "execução",
-                "esfaqueamento",
-                "facada",
-                "latrocínio",
-            ],
-            "combinations": [
-                "homicídio homicídio",
-                "homicídio assassinato",
-                "homicídio morte",
-                "assassinato morte",
-                "crime violento morte",
-                "violência morte",
-                "tiroteio morte",
-                "tiroteio violência",
+                "COVID-19 COVID-19",
+                "coronavírus coronavírus",
+                "COVID coronavírus",
             ],
             "exclude_terms": [],
         },
